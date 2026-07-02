@@ -50,6 +50,7 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [executingMitigation, setExecutingMitigation] = useState(false);
   const [mitigated, setMitigated] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const handleSelectPreset = (type) => {
     setLogType(type);
@@ -63,6 +64,11 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
     setAnalyzing(true);
     setAnalysisResult(null);
     setMitigated(false);
+    setCurrentStep(0);
+
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => (prev < 5 ? prev + 1 : prev));
+    }, 450);
 
     try {
       // Direct call to FastAPI Gemini router
@@ -86,6 +92,7 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
         }
       }, 2000);
     } finally {
+      clearInterval(interval);
       setAnalyzing(false);
     }
   };
@@ -248,19 +255,61 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
           )}
 
           {analyzing && (
-            <div className="text-center p-8 space-y-6">
-              <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-                <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-full" />
-                <div className="absolute inset-0 border-4 border-t-indigo-500 rounded-full animate-spin" />
-                <Cpu className="w-8 h-8 text-indigo-400 animate-pulse" />
+            <div className="p-8 space-y-6">
+              <div className="text-center space-y-2">
+                <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+                  <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-full" />
+                  <div className="absolute inset-0 border-4 border-t-indigo-500 rounded-full animate-spin" />
+                  <Cpu className="w-6 h-6 text-indigo-400 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-indigo-300 font-bold text-sm tracking-wider uppercase font-mono">
+                    Multi-Agent Core Orchestration
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-sans">
+                    Sequencing security nodes and synthesising response playbooks.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-indigo-300 font-bold text-sm tracking-wider uppercase font-mono">
-                  Gemini Reasoning Active
-                </p>
-                <p className="text-xs text-slate-500 mt-2 max-w-xs mx-auto">
-                  Classifying network vector patterns, compiling incident structures, and formulating firewall responses.
-                </p>
+
+              {/* Progress Steps */}
+              <div className="bg-slate-950/60 rounded-xl border border-slate-900/60 p-5 space-y-3.5">
+                {[
+                  "Security Guardian validating upload...",
+                  "Investigator Agent analyzing logs...",
+                  "Threat Intelligence Agent mapping MITRE ATT&CK...",
+                  "Response Planner generating containment...",
+                  "PDF Generator creating incident report...",
+                  "Memory searching previous incidents..."
+                ].map((stepText, idx) => {
+                  const isDone = currentStep > idx;
+                  const isActive = currentStep === idx;
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center space-x-3 transition-colors duration-200 ${
+                        isDone ? 'text-emerald-400' : isActive ? 'text-indigo-300 animate-pulse' : 'text-slate-650'
+                      }`}
+                    >
+                      <div className="flex-shrink-0">
+                        {isDone ? (
+                          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-0.5 rounded-full">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        ) : isActive ? (
+                          <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <div className="w-4 h-4 border border-slate-800 rounded-full bg-slate-900" />
+                        )}
+                      </div>
+                      <span className={`text-xs font-mono ${isActive ? 'font-semibold' : ''}`}>
+                        {stepText}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -11,7 +11,7 @@ import Login from './pages/Login';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [apiBase, setApiBase] = useState('http://localhost:8000');
+  const [apiBase, setApiBase] = useState('http://localhost:8081');
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   
   // Local state for incidents

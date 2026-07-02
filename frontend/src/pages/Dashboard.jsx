@@ -3,7 +3,7 @@ import { Shield, ShieldAlert, FileText, CheckCircle2, UserX, Network, Ban, Alert
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import MetricCard from '../components/MetricCard';
 
-export default function Dashboard({ stats, incidents, onUpdateIncident }) {
+export default function Dashboard({ stats, incidents, onUpdateIncident, apiBase }) {
   // Safe Fallback data for charts if none exists
   const trendData = [
     { name: '08:00', incidents: 2 },
@@ -23,13 +23,19 @@ export default function Dashboard({ stats, incidents, onUpdateIncident }) {
   ];
 
   const recentIncidents = incidents.slice(0, 5);
+  const reportsList = incidents.filter(i => i.pdf_path);
+
+  // Dynamic metrics calculation
+  const riskScores = incidents.map(i => i.risk_score).filter(Boolean);
+  const avgRisk = riskScores.length ? Math.round(riskScores.reduce((a, b) => a + b, 0) / riskScores.length) : 75;
+  const activeInvestigations = incidents.filter(i => i.status !== 'MITIGATED').length;
 
   const handleMitigate = async (incidentId, action) => {
     onUpdateIncident(incidentId, { status: 'MITIGATED', response_action: action });
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in font-sans">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
         <div>
@@ -37,7 +43,7 @@ export default function Dashboard({ stats, incidents, onUpdateIncident }) {
           <p className="text-slate-400 text-sm mt-1">Real-time autonomous intrusion detection, threat parsing, and response center.</p>
         </div>
         <div className="flex items-center space-x-3 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full">
-          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping" />
+          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping animate-duration-1000" />
           <span className="text-xs font-semibold text-emerald-400 font-mono uppercase tracking-wider">
             Active Guard: Autonomous
           </span>
@@ -55,15 +61,15 @@ export default function Dashboard({ stats, incidents, onUpdateIncident }) {
           change={{ value: 'Elevated', label: 'past 24h logs', type: 'negative' }}
         />
         <MetricCard
-          title="Unresolved Incidents"
-          value={stats.unresolved || 0}
+          title="Active Investigations"
+          value={activeInvestigations}
           icon={AlertOctagon}
           colorClass="bg-amber-500/10 text-amber-400 border border-amber-500/20"
         />
         <MetricCard
-          title="Total Logs Parsed"
-          value={stats.totalLogs || 0}
-          icon={FileText}
+          title="Average Risk Score"
+          value={`${avgRisk}/100`}
+          icon={Shield}
           colorClass="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
         />
         <MetricCard
@@ -145,97 +151,137 @@ export default function Dashboard({ stats, incidents, onUpdateIncident }) {
         </div>
       </div>
 
-      {/* Active Incident Feed & Quick Control */}
-      <div className="glass-panel p-6 rounded-2xl space-y-4">
-        <div className="flex justify-between items-center">
+      {/* Dynamic Alerts Feed & Reports Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Active Incident Feed (Left 2 Columns) */}
+        <div className="glass-panel p-6 rounded-2xl lg:col-span-2 space-y-4">
           <div>
             <h3 className="text-lg font-bold text-white">Active Intrusion Alerts</h3>
             <p className="text-xs text-slate-400">Recently parsed threats requiring response planning.</p>
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                <th className="pb-3 pl-4">Timestamp</th>
-                <th className="pb-3">Source IP / User</th>
-                <th className="pb-3">Threat Type</th>
-                <th className="pb-3 text-center">Severity</th>
-                <th className="pb-3 text-center">Status</th>
-                <th className="pb-3 pr-4 text-right">Autonomous Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800 text-sm">
-              {recentIncidents.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="py-8 text-center text-slate-500 font-mono">
-                    No active threat logs detected. Paste logs in "Log Analyzer" to populate.
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                  <th className="pb-3 pl-4">Timestamp</th>
+                  <th className="pb-3">Source IP / User</th>
+                  <th className="pb-3">Threat Type</th>
+                  <th className="pb-3 text-center">Severity</th>
+                  <th className="pb-3 text-center">Status</th>
+                  <th className="pb-3 pr-4 text-right">Autonomous Action</th>
                 </tr>
-              ) : (
-                recentIncidents.map((incident) => (
-                  <tr key={incident.id} className="hover:bg-slate-800/20 transition-colors duration-150">
-                    <td className="py-4 pl-4 font-mono text-xs text-slate-400">{incident.timestamp || 'Just now'}</td>
-                    <td className="py-4 font-semibold text-slate-200">
-                      {incident.source_ip || incident.username || 'System'}
-                    </td>
-                    <td className="py-4">
-                      <div className="flex flex-col">
-                        <span className="text-slate-300 font-medium">{incident.title}</span>
-                        <span className="text-[11px] text-slate-500 max-w-xs truncate">{incident.description}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 text-center">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded font-mono ${
-                        incident.severity === 'CRITICAL' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                        incident.severity === 'HIGH' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
-                        incident.severity === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                        'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      }`}>
-                        {incident.severity}
-                      </span>
-                    </td>
-                    <td className="py-4 text-center">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        incident.status === 'MITIGATED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                        incident.status === 'INVESTIGATING' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' :
-                        'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      }`}>
-                        {incident.status}
-                      </span>
-                    </td>
-                    <td className="py-4 pr-4 text-right">
-                      {incident.status === 'UNRESOLVED' ? (
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleMitigate(incident.id, 'BLOCK_IP')}
-                            className="bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white px-2.5 py-1 rounded text-xs transition-colors flex items-center space-x-1"
-                            title="Block Source IP"
-                          >
-                            <Ban className="w-3.5 h-3.5" />
-                            <span>Block</span>
-                          </button>
-                          <button
-                            onClick={() => handleMitigate(incident.id, 'ISOLATE_HOST')}
-                            className="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-650 hover:text-white px-2.5 py-1 rounded text-xs transition-colors flex items-center space-x-1"
-                            title="Isolate Host Endpoint"
-                          >
-                            <Network className="w-3.5 h-3.5" />
-                            <span>Isolate</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-500 font-mono">
-                          Action: {incident.response_action || 'Mitigated'}
-                        </span>
-                      )}
+              </thead>
+              <tbody className="divide-y divide-slate-800 text-sm">
+                {recentIncidents.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-slate-500 font-mono text-xs">
+                      No active threat logs detected. Paste logs in "Log Analyzer" to populate.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  recentIncidents.map((incident) => (
+                    <tr key={incident.id} className="hover:bg-slate-800/20 transition-colors duration-150">
+                      <td className="py-4 pl-4 font-mono text-xs text-slate-400">
+                        {incident.timestamp ? new Date(incident.timestamp).toLocaleTimeString() : 'Just now'}
+                      </td>
+                      <td className="py-4 font-semibold text-slate-200">
+                        {incident.source_ip || incident.username || 'System'}
+                      </td>
+                      <td className="py-4">
+                        <div className="flex flex-col">
+                          <span className="text-slate-300 font-medium">{incident.title}</span>
+                          <span className="text-[11px] text-slate-550 max-w-xs truncate">{incident.description}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 text-center">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded font-mono ${
+                          incident.severity === 'CRITICAL' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                          incident.severity === 'HIGH' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
+                          incident.severity === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                          'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        }`}>
+                          {incident.severity}
+                        </span>
+                      </td>
+                      <td className="py-4 text-center">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          incident.status === 'MITIGATED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          incident.status === 'INVESTIGATING' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' :
+                          'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {incident.status}
+                        </span>
+                      </td>
+                      <td className="py-4 pr-4 text-right">
+                        {incident.status === 'UNRESOLVED' ? (
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={() => handleMitigate(incident.id, 'BLOCK_IP')}
+                              className="bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white px-2.5 py-1 rounded text-xs transition-colors flex items-center space-x-1 cursor-pointer"
+                              title="Block Source IP"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                              <span>Block</span>
+                            </button>
+                            <button
+                              onClick={() => handleMitigate(incident.id, 'ISOLATE_HOST')}
+                              className="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-650 hover:text-white px-2.5 py-1 rounded text-xs transition-colors flex items-center space-x-1 cursor-pointer"
+                              title="Isolate Host Endpoint"
+                            >
+                              <Network className="w-3.5 h-3.5" />
+                              <span>Isolate</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-500 font-mono">
+                            Action: {incident.response_action || 'Mitigated'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Generated PDF Reports (Right 1 Column) */}
+        <div className="glass-panel p-6 rounded-2xl space-y-4">
+          <div>
+            <h3 className="text-lg font-bold text-white">Generated Reports</h3>
+            <p className="text-xs text-slate-400">Download compiled multi-agent dossiers.</p>
+          </div>
+
+          <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+            {reportsList.length === 0 ? (
+              <div className="text-center py-12 text-slate-550 font-mono text-xs">
+                No reports compiled yet.
+              </div>
+            ) : (
+              reportsList.map((inc) => (
+                <div
+                  key={inc.id}
+                  className="flex items-center justify-between p-3.5 bg-slate-950/40 rounded-xl border border-slate-900 hover:border-slate-800 transition-colors"
+                >
+                  <div className="space-y-0.5 min-w-0 flex-1 pr-3">
+                    <p className="text-xs font-semibold text-slate-200 truncate">{inc.title}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">ID #{inc.id} • Risk Index: {inc.risk_score || 70}/100</p>
+                  </div>
+                  <a
+                    href={`${apiBase}${inc.pdf_path}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-1 text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/10 transition-colors cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>PDF</span>
+                  </a>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
