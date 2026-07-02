@@ -1,0 +1,40 @@
+[
+  {
+    "EventID": 4625,
+    "LogName": "Security",
+    "SourceName": "Microsoft-Windows-Security-Auditing",
+    "TimeCreated": "2026-07-02T10:14:02.124Z",
+    "Keywords": "Audit Failure",
+    "Description": "An account failed to log on.",
+    "TargetUserName": "Administrator",
+    "LogonType": 3,
+    "WorkstationName": "ATTACKER-PC",
+    "IpAddress": "192.168.1.142",
+    "IpPort": 52401,
+    "FailureReason": "Unknown user name or bad password."
+  },
+  {
+    "EventID": 4625,
+    "LogName": "Security",
+    "SourceName": "Microsoft-Windows-Security-Auditing",
+    "TimeCreated": "2026-07-02T10:14:05.891Z",
+    "Keywords": "Audit Failure",
+    "Description": "An account failed to log on.",
+    "TargetUserName": "Administrator",
+    "LogonType": 3,
+    "WorkstationName": "ATTACKER-PC",
+    "IpAddress": "192.168.1.142",
+    "IpPort": 52405,
+    "FailureReason": "Unknown user name or bad password."
+  },
+  {
+    "EventID": 4672,
+    "LogName": "Security",
+    "SourceName": "Microsoft-Windows-Security-Auditing",
+    "TimeCreated": "2026-07-02T10:15:00.000Z",
+    "Keywords": "Audit Success",
+    "Description": "Special privileges assigned to new logon.",
+    "TargetUserName": "SYSTEM",
+    "PrivilegeList": "SeSecurityPrivilege, SeBackupPrivilege, SeRestorePrivilege"
+  }
+]

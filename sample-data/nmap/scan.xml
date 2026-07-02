@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun SYSTEM "nmap.dtd">
+<nmaprun scanner="nmap" args="nmap -sV -p 22,80,443,3389,8080 -oA scan 192.168.1.0/24" start="1782972300" version="7.92" xmloutputversion="1.05">
+  <host>
+    <address addr="192.168.1.10" addrtype="ipv4"/>
+    <hostnames><hostname name="main-server"/></hostnames>
+    <ports>
+      <port protocol="tcp" portid="22"><state state="open"/><service name="ssh" product="OpenSSH" version="8.9p1"/></port>
+      <port protocol="tcp" portid="80"><state state="open"/><service name="http" product="nginx" version="1.18.0"/></port>
+      <port protocol="tcp" portid="3389"><state state="closed"/><service name="ms-wbt-server"/></port>
+    </ports>
+  </host>
+</nmaprun>

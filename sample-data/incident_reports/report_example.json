@@ -1,0 +1,20 @@
+{
+  "report_id": "SR-2026-001",
+  "incident_type": "SSH Brute Force Intrusion Alert",
+  "severity_classification": "CRITICAL",
+  "detection_method": "Gemini AI Log Intelligence",
+  "attacker_ip": "203.0.113.82",
+  "target_nodes": [
+    "192.168.1.10"
+  ],
+  "mitigation_actions": [
+    {
+      "timestamp": "2026-07-02T10:16:00Z",
+      "action_type": "BLOCK_IP",
+      "execution_status": "SUCCESSFUL",
+      "response_agent": "Sentinel AI Autonomous Orchestrator",
+      "rule_applied": "iptables -A INPUT -s 203.0.113.82 -j DROP"
+    }
+  ],
+  "analyst_notes": "Threat was identified by sshd failed attempt clustering. Autonomous containment block was executed on border gateway. Verification probe returned negative status for SSH connectivity from attacker source."
+}
