@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from app.database import get_db
 from app.services.orchestrator import AgentOrchestrator
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -11,7 +12,14 @@ class AnalyzeLogRequest(BaseModel):
     raw_log: str
 
 @router.post("/analyze-log")
-async def analyze_log(req: AnalyzeLogRequest, db: AsyncSession = Depends(get_db)):
+async def analyze_log(
+    req: AnalyzeLogRequest, 
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(get_current_user)
+):
+    """
+    Submits a security log to the Multi-Agent response system.
+    """
     if not req.raw_log.strip():
         raise HTTPException(status_code=400, detail="Raw log content is empty")
 

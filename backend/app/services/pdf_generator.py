@@ -1,5 +1,6 @@
 import os
 import json
+import html
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -7,6 +8,12 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from app.models import Incident
+
+def escape(text: str) -> str:
+    """Escapes XML/HTML tags from plain text inputs to prevent ReportLab crash."""
+    if not text:
+        return ""
+    return html.escape(str(text))
 
 class PDFReportGenerator:
     @staticmethod
@@ -114,7 +121,7 @@ class PDFReportGenerator:
         
         # 2. Document Title
         story.append(Paragraph(f"Security Incident Investigation Report: #{incident.id}", title_style))
-        story.append(Paragraph(f"Target Classification: <b>{incident.title}</b>", body_style))
+        story.append(Paragraph(f"Target Classification: <b>{escape(incident.title)}</b>", body_style))
         story.append(Spacer(1, 10))
         
         # 3. Key Metrics Table
@@ -130,13 +137,13 @@ class PDFReportGenerator:
             ],
             [
                 Paragraph("Source IP/Host:", body_bold),
-                Paragraph(incident.source_ip or "N/A", body_style),
+                Paragraph(escape(incident.source_ip or "N/A"), body_style),
                 Paragraph("Timeline Trigger:", body_bold),
                 Paragraph(incident.timestamp.strftime("%Y-%m-%d %H:%M:%S") if (incident.timestamp and hasattr(incident.timestamp, "strftime")) else datetime.now().strftime("%Y-%m-%d %H:%M:%S"), body_style)
             ],
             [
                 Paragraph("MITRE ATT&CK mapping:", body_bold),
-                Paragraph(incident.mitre_attack or "T1204 (User Execution)", body_style),
+                Paragraph(escape(incident.mitre_attack or "T1204 (User Execution)"), body_style),
                 Paragraph("Risk Score Index:", body_bold),
                 Paragraph(f"<b>{incident.risk_score or 75}/100</b>", body_style)
             ]
@@ -156,12 +163,12 @@ class PDFReportGenerator:
         story.append(Paragraph(
             f"An intrusion signal was analyzed by the Sentinel AI autonomous security engine. The threat has been categorized as a "
             f"<b>{incident.severity}</b> severity event. Sentinel AI extracted host variables and configured targeted active response mitigations. "
-            f"The primary attack vector is assessed as <i>{incident.title}</i> targeting local resources.", body_style
+            f"The primary attack vector is assessed as <i>{escape(incident.title)}</i> targeting local resources.", body_style
         ))
         
         # 5. Incident Overview
         story.append(Paragraph("Threat Intelligence Overview", h2_style))
-        story.append(Paragraph(incident.description, body_style))
+        story.append(Paragraph(escape(incident.description), body_style))
         
         # 6. Extracted Evidence (IOCs)
         story.append(Paragraph("Indicators of Compromise (IOCs) Extracted", h2_style))
@@ -172,13 +179,13 @@ class PDFReportGenerator:
             
         evidence_text = ""
         if evidence_list.get("ips"):
-            evidence_text += f"• <b>IP Addresses:</b> {', '.join(evidence_list['ips'])}<br/>"
+            evidence_text += f"• <b>IP Addresses:</b> {', '.join(escape(ip) for ip in evidence_list['ips'])}<br/>"
         if evidence_list.get("domains"):
-            evidence_text += f"• <b>Domains:</b> {', '.join(evidence_list['domains'])}<br/>"
+            evidence_text += f"• <b>Domains:</b> {', '.join(escape(d) for d in evidence_list['domains'])}<br/>"
         if evidence_list.get("hashes"):
-            evidence_text += f"• <b>File Hashes (MD5/SHA256):</b> {', '.join(evidence_list['hashes'])}<br/>"
+            evidence_text += f"• <b>File Hashes (MD5/SHA256):</b> {', '.join(escape(h) for h in evidence_list['hashes'])}<br/>"
         if evidence_list.get("urls"):
-            evidence_text += f"• <b>Request URLs:</b> {', '.join(evidence_list['urls'])}<br/>"
+            evidence_text += f"• <b>Request URLs:</b> {', '.join(escape(u) for u in evidence_list['urls'])}<br/>"
             
         if not evidence_text:
             evidence_text = "No distinct IOCs extracted from threat file variables."
@@ -209,8 +216,8 @@ class PDFReportGenerator:
         ]
         for item in timeline_items:
             timeline_data.append([
-                Paragraph(item.get("time", "N/A"), body_style),
-                Paragraph(item.get("event", "Event occurred"), body_style)
+                Paragraph(escape(item.get("time", "N/A")), body_style),
+                Paragraph(escape(item.get("event", "Event occurred")), body_style)
             ])
             
         timeline_table = Table(timeline_data, colWidths=[1.5 * inch, 6 * inch])
@@ -234,7 +241,7 @@ class PDFReportGenerator:
         story.append(Paragraph("Containment Playbook Plan", h2_style))
         containment_action = incident.response_action or "NONE"
         
-        playbook_text = f"<b>Active Command Imposed:</b> {containment_action}<br/><br/>"
+        playbook_text = f"<b>Active Command Imposed:</b> {escape(containment_action)}<br/><br/>"
         if containment_action == "BLOCK_IP":
             playbook_text += "1. Configure host level blocking rules for source IP on firewall tables.<br/>" \
                              "2. Terminate all socket sessions originating from target subnet address.<br/>" \
@@ -257,7 +264,7 @@ class PDFReportGenerator:
                            "Verify local host patch baselines are updated against known CVE vulnerabilities. " \
                            "Scan Active Directory logons for anomalies. Re-enable network adapter configurations " \
                            "only after complete host quarantine review."
-        story.append(Paragraph(remediation_text, body_style))
+        story.append(Paragraph(escape(remediation_text), body_style))
         story.append(Spacer(1, 20))
         
         # Footer branding

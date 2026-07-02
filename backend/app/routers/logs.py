@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from app.database import get_db
 from app.models import SecurityLog
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/logs", tags=["logs"])
 
@@ -11,7 +12,14 @@ class LogUploadRequest(BaseModel):
     raw_content: str
 
 @router.post("/upload")
-async def upload_log(req: LogUploadRequest, db: AsyncSession = Depends(get_db)):
+async def upload_log(
+    req: LogUploadRequest, 
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(get_current_user)
+):
+    """
+    Ingests and stores a raw security log payload.
+    """
     if not req.raw_content.strip():
         raise HTTPException(status_code=400, detail="Content cannot be empty")
 

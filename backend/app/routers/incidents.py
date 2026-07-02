@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from app.database import get_db
 from app.models import Incident
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -19,6 +20,14 @@ class IncidentResponse(BaseModel):
     status: str
     response_action: Optional[str] = None
     timestamp: datetime
+    mitre_attack: Optional[str] = None
+    cve_id: Optional[str] = None
+    risk_score: Optional[int] = None
+    confidence_score: Optional[int] = None
+    attack_timeline: Optional[str] = None
+    evidence: Optional[str] = None
+    remediation_plan: Optional[str] = None
+    pdf_path: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -31,12 +40,18 @@ class MitigateRequest(BaseModel):
     action: str
 
 @router.get("", response_model=List[IncidentResponse])
-async def get_incidents(db: AsyncSession = Depends(get_db)):
+async def get_incidents(
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(get_current_user)
+):
     result = await db.execute(select(Incident).order_by(Incident.timestamp.desc()))
     return result.scalars().all()
 
 @router.get("/stats")
-async def get_stats(db: AsyncSession = Depends(get_db)):
+async def get_stats(
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(get_current_user)
+):
     # Run queries to aggregate statistics
     total_result = await db.execute(select(func.count(Incident.id)))
     total_logs = total_result.scalar_one() or 0
@@ -75,7 +90,12 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     }
 
 @router.patch("/{incident_id}", response_model=IncidentResponse)
-async def update_incident(incident_id: int, req: IncidentUpdate, db: AsyncSession = Depends(get_db)):
+async def update_incident(
+    incident_id: int, 
+    req: IncidentUpdate, 
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(get_current_user)
+):
     result = await db.execute(select(Incident).where(Incident.id == incident_id))
     incident = result.scalar_one_or_none()
     if not incident:
@@ -91,14 +111,17 @@ async def update_incident(incident_id: int, req: IncidentUpdate, db: AsyncSessio
     return incident
 
 @router.post("/{incident_id}/mitigate")
-async def execute_mitigation(incident_id: int, req: MitigateRequest, db: AsyncSession = Depends(get_db)):
+async def execute_mitigation(
+    incident_id: int, 
+    req: MitigateRequest, 
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(get_current_user)
+):
     result = await db.execute(select(Incident).where(Incident.id == incident_id))
     incident = result.scalar_one_or_none()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
 
-    # Perform mock containment actions safely (simulation)
-    # E.g. block IP: simulated system execution call
     action_executed = f"MOCK_ACTION_SUCCESS: {req.action} applied for target {incident.source_ip or 'host'}"
     
     incident.status = "MITIGATED"

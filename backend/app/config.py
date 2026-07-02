@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./sentinel.db"
     JWT_SECRET: str = "supersecretjwtsecretkeysentinelai12345"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "sentinelpass123"
 
     model_config = SettingsConfigDict(
         env_file=".env",

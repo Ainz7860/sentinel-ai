@@ -5,12 +5,16 @@ from typing import List, Dict, Any
 from app.database import get_db
 from app.models import ObservabilityMetric, Incident
 from app.services.memory_search import memory_search_service
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/observability", tags=["observability"])
 memory_router = APIRouter(prefix="/api/memory", tags=["memory"])
 
 @router.get("/stats")
-async def get_observability_stats(db: AsyncSession = Depends(get_db)):
+async def get_observability_stats(
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(get_current_user)
+):
     """
     Aggregates execution latency, token billings, success rates, 
     and invocation frequencies of security agents and tools.
@@ -62,7 +66,8 @@ async def get_observability_stats(db: AsyncSession = Depends(get_db)):
 @memory_router.get("/search")
 async def search_memory(
     q: str = Query(..., min_length=1),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: str = Depends(get_current_user)
 ):
     """
     Queries past security incidents using TF-IDF text similarity algorithms.

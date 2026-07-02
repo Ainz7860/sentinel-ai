@@ -49,6 +49,17 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         })}
       </nav>
 
+      {/* Sign Out Button */}
+      <div className="px-4 py-2 border-t border-slate-800">
+        <button
+          onClick={() => setActiveTab('logout')}
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 text-left text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 border border-transparent group cursor-pointer"
+        >
+          <LogOut className="w-5 h-5 text-slate-500 group-hover:text-rose-400 transition-transform duration-200 group-hover:scale-110" />
+          <span className="text-sm">Sign Out</span>
+        </button>
+      </div>
+
       {/* Footer Info */}
       <div className="p-4 border-t border-slate-800 text-center">
         <p className="text-[10px] text-slate-500 font-mono">

@@ -7,10 +7,12 @@ import Incidents from './pages/Incidents';
 import Settings from './pages/Settings';
 import MemoryView from './pages/MemoryView';
 import ObservabilityView from './pages/ObservabilityView';
+import Login from './pages/Login';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [apiBase, setApiBase] = useState('http://localhost:8000');
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
   
   // Local state for incidents
   const [incidents, setIncidents] = useState([]);
@@ -22,6 +24,25 @@ export default function App() {
     totalLogs: 0,
     blockRules: 0
   });
+
+  // Handle global axios auth header
+  useEffect(() => {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem('token', token);
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+      localStorage.removeItem('token');
+    }
+  }, [token]);
+
+  // Handle logout action
+  useEffect(() => {
+    if (activeTab === 'logout') {
+      setToken('');
+      setActiveTab('dashboard');
+    }
+  }, [activeTab]);
 
   // Load stats and incidents list from backend
   const fetchTelemetry = async () => {
@@ -149,6 +170,10 @@ export default function App() {
         return <Dashboard stats={stats} incidents={incidents} onUpdateIncident={handleUpdateIncident} />;
     }
   };
+
+  if (!token) {
+    return <Login apiBase={apiBase} onLoginSuccess={setToken} />;
+  }
 
   return (
     <div className="min-h-screen flex bg-[#080c14] text-slate-100 antialiased font-sans">
