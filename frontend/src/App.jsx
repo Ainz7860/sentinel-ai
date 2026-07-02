@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import LogAnalyzer from './pages/LogAnalyzer';
 import Incidents from './pages/Incidents';
 import Settings from './pages/Settings';
+import MemoryView from './pages/MemoryView';
+import ObservabilityView from './pages/ObservabilityView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -137,6 +139,10 @@ export default function App() {
         return <LogAnalyzer onNewIncident={handleNewIncident} apiBase={apiBase} />;
       case 'incidents':
         return <Incidents incidents={incidents} onUpdateIncident={handleUpdateIncident} />;
+      case 'memory':
+        return <MemoryView apiBase={apiBase} />;
+      case 'observability':
+        return <ObservabilityView apiBase={apiBase} />;
       case 'settings':
         return <Settings apiBase={apiBase} setApiBase={setApiBase} />;
       default:

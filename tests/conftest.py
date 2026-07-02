@@ -6,13 +6,13 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from httpx import AsyncClient, ASGITransport
 import os
 
-# Override Database URL for testing using an in-memory SQLite database
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+# Override Database URL for testing using a temporary file-based SQLite database
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_temp.db"
 
 from app.database import Base, get_db
 from app.main import app
 
-test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", connect_args={"check_same_thread": False})
+test_engine = create_async_engine("sqlite+aiosqlite:///./test_temp.db", connect_args={"check_same_thread": False})
 TestSessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
 
 @pytest.fixture(scope="session")
@@ -23,11 +23,34 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_test_db():
+    # Delete test_temp.db if it already exists from a crashed run
+    if os.path.exists("./test_temp.db"):
+        try:
+            os.remove("./test_temp.db")
+        except Exception:
+            pass
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    # Teardown: close engine and remove the temporary DB files
+    await test_engine.dispose()
+    
+    if os.path.exists("./test_temp.db"):
+        try:
+            os.remove("./test_temp.db")
+        except Exception:
+            pass
+    if os.path.exists("./test_temp.db-shm"):
+        try:
+            os.remove("./test_temp.db-shm")
+        except Exception:
+            pass
+    if os.path.exists("./test_temp.db-wal"):
+        try:
+            os.remove("./test_temp.db-wal")
+        except Exception:
+            pass
 
 # Database session override for test client
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:

@@ -1,1 +1,1 @@
-from app.models.models import User, Incident, ResponseRule, SecurityLog
+from app.models.models import User, Incident, ResponseRule, SecurityLog, ObservabilityMetric

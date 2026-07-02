@@ -1,11 +1,12 @@
-import React from 'react';
-import { Shield, LayoutDashboard, Terminal, AlertTriangle, Settings, LogOut } from 'lucide-react';
+import { Shield, LayoutDashboard, Terminal, AlertTriangle, Settings, Database, Activity, LogOut } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'analyzer', label: 'Log Analyzer', icon: Terminal },
     { id: 'incidents', label: 'Incidents Feed', icon: AlertTriangle },
+    { id: 'memory', label: 'Semantic Memory', icon: Database },
+    { id: 'observability', label: 'Observability', icon: Activity },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
