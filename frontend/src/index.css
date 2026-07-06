@@ -4,71 +4,203 @@
 :root {
   font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   color-scheme: dark;
+  --neon-cyan: #06b6d4;
+  --neon-indigo: #6366f1;
+  --neon-rose: #f43f5e;
+  --neon-emerald: #10b981;
+  --neon-amber: #f59e0b;
 }
 
 body {
   margin: 0;
-  background-color: #080c14;
+  background-color: #040810;
   color: #f3f4f6;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* Glassmorphism utility */
+/* Glassmorphism utilities */
 .glass-panel {
-  background: rgba(10, 15, 26, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 24, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .glass-card {
-  background: rgba(17, 24, 39, 0.5);
+  background: rgba(13, 20, 38, 0.45);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
-  background: rgba(23, 37, 84, 0.2);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.1);
-  transform: translateY(-2px);
+  background: rgba(23, 37, 84, 0.25);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 
+    0 10px 30px -10px rgba(0, 0, 0, 0.6), 
+    0 0 25px rgba(99, 102, 241, 0.12),
+    inset 0 0 12px rgba(99, 102, 241, 0.05);
+  transform: translateY(-3px) scale(1.01);
+}
+
+/* Cyber grid background */
+.cyber-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+  animation: grid-pan 120s linear infinite;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(8, 12, 20, 0.5);
+  background: rgba(4, 8, 16, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.3);
-  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.6);
+  background: rgba(6, 182, 212, 0.6);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
 }
 
 /* Animations & transitions */
 .transition-glow {
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
 }
 
 .glow-alert-red {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.2), inset 0 0 10px rgba(244, 63, 94, 0.05);
+  border-color: rgba(244, 63, 94, 0.45);
 }
 
 .glow-alert-yellow {
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.2), inset 0 0 10px rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.45);
 }
 
 .glow-alert-green {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.2), inset 0 0 10px rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.45);
 }
+
+.glow-alert-cyan {
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.2), inset 0 0 10px rgba(6, 182, 212, 0.05);
+  border-color: rgba(6, 182, 212, 0.45);
+}
+
+/* Shimmer load skeleton */
+.shimmer-bg {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-anim 1.5s infinite linear;
+}
+
+/* Custom Keyframe Animations */
+@keyframes grid-pan {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4000px; }
+}
+
+@keyframes shimmer-anim {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+@keyframes float-medium {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(-1.5deg); }
+}
+
+@keyframes scanline-anim {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes scanline-box-anim {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes typing-cursor {
+  0%, 100% { border-color: transparent; }
+  50% { border-color: var(--neon-cyan); }
+}
+
+/* Helper Animation classes */
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 4s ease-in-out infinite;
+}
+
+.animate-scanline {
+  animation: scanline-anim 6s linear infinite;
+}
+
+.animate-scanline-box {
+  animation: scanline-box-anim 4s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s infinite ease-in-out;
+}
+
+.cursor-blink {
+  border-right: 2px solid var(--neon-cyan);
+  animation: typing-cursor 1s step-end infinite;
+}
+
+/* Staggered entry classes */
+.stagger-in > * {
+  opacity: 0;
+  animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.stagger-in > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-in > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-in > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-in > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-in > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-in > *:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

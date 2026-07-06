@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Terminal, ShieldAlert, Cpu, Sparkles, Loader2, Play, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Terminal, ShieldAlert, Cpu, Sparkles, Loader2, Play, CheckCircle, HelpCircle } from 'lucide-react';
 import axios from 'axios';
+import EducationalTooltip from '../components/EducationalTooltip';
 
 const LOG_SAMPLES = {
   windows: `LogName=Security
@@ -43,7 +44,73 @@ Jul  2 10:14:35 main-server sshd[12042]: Invalid user support from 203.0.113.82 
 2026-07-02 11:20:14 DROP TCP 203.0.113.5 192.168.1.10 52315 8080 - - - - - - - - -`
 };
 
-export default function LogAnalyzer({ onNewIncident, apiBase }) {
+const AGENTS_METADATA = [
+  { name: "Security Guardian", role: "Input WAF Validation", finalTime: 180 },
+  { name: "Investigator Agent", role: "Log Parsing & Analysis", finalTime: 520 },
+  { name: "Threat Intel Core", role: "MITRE ATT&CK Mapping", finalTime: 740 },
+  { name: "Memory Searcher", role: "TF-IDF Similar Retriev", finalTime: 360 },
+  { name: "Response Planner", role: "Containment Formulation", finalTime: 610 },
+  { name: "Report Compiler", role: "PDF Dossier Assembly", finalTime: 490 }
+];
+
+function AgentExecutionCard({ name, role, isActive, isDone, finalTime }) {
+  const [time, setTime] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (isActive) {
+      const start = performance.now();
+      interval = setInterval(() => {
+        setTime(Math.round(performance.now() - start));
+      }, 30);
+    }
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  return (
+    <div className={`p-4 rounded-xl border transition-all duration-300 flex flex-col justify-between h-28 relative overflow-hidden ${
+      isDone ? 'bg-emerald-950/10 border-emerald-500/30 text-slate-200' :
+      isActive ? 'bg-indigo-950/20 border-indigo-500/40 text-white animate-pulse' :
+      'bg-slate-950/30 border-slate-900/50 text-slate-600'
+    }`}>
+      {isActive && (
+        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent animate-scanline-box" />
+      )}
+      
+      <div className="flex justify-between items-start w-full">
+        <span className="text-[9px] font-mono tracking-widest font-bold uppercase">{name}</span>
+        <span className="text-[10px] font-mono text-slate-450">
+          {isDone ? `${finalTime}ms` : isActive ? `${time}ms` : '0ms'}
+        </span>
+      </div>
+      
+      <p className={`text-xs font-semibold mt-1.5 ${isDone ? 'text-slate-300' : isActive ? 'text-indigo-200' : 'text-slate-550'}`}>
+        {role}
+      </p>
+
+      <div className="mt-2.5 flex items-center justify-between">
+        {isDone ? (
+          <span className="text-[9px] bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono uppercase font-bold flex items-center space-x-1">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            <span>RESOLVED</span>
+          </span>
+        ) : isActive ? (
+          <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-mono uppercase font-bold animate-pulse flex items-center space-x-1">
+            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping" />
+            <span>RUNNING</span>
+          </span>
+        ) : (
+          <span className="text-[9px] bg-slate-900 text-slate-600 border border-slate-800 px-2 py-0.5 rounded-full font-mono uppercase font-bold flex items-center space-x-1">
+            <span className="w-1.5 h-1.5 bg-slate-700 rounded-full" />
+            <span>STANDBY</span>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function LogAnalyzer({ onNewIncident, apiBase, demoMode, notify }) {
   const [logType, setLogType] = useState('windows');
   const [logText, setLogText] = useState(LOG_SAMPLES.windows);
   const [analyzing, setAnalyzing] = useState(false);
@@ -66,9 +133,24 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
     setMitigated(false);
     setCurrentStep(0);
 
-    const interval = setInterval(() => {
-      setCurrentStep((prev) => (prev < 5 ? prev + 1 : prev));
+    const stepInterval = setInterval(() => {
+      setCurrentStep((prev) => (prev < 6 ? prev + 1 : prev));
     }, 450);
+
+    if (demoMode) {
+      // Fast bypass for simulation mode
+      setTimeout(() => {
+        const simulatedResult = simulateAnalysis(logType, logText);
+        setAnalysisResult(simulatedResult);
+        if (simulatedResult.incident) {
+          onNewIncident(simulatedResult.incident);
+        }
+        clearInterval(stepInterval);
+        setCurrentStep(6);
+        setAnalyzing(false);
+      }, 2700);
+      return;
+    }
 
     try {
       // Direct call to FastAPI Gemini router
@@ -92,7 +174,7 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
         }
       }, 2000);
     } finally {
-      clearInterval(interval);
+      clearInterval(stepInterval);
       setAnalyzing(false);
     }
   };
@@ -109,6 +191,7 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
       setTimeout(() => {
         setMitigated(true);
         setExecutingMitigation(false);
+        if (notify) notify("Autonomous Playbook Execution completed successfully.", "success");
       }, 1500);
     } catch (err) {
       console.error(err);
@@ -136,6 +219,7 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
         severity: 'HIGH',
         source_ip: '203.0.113.100',
         status: 'UNRESOLVED',
+        risk_score: 83,
         timestamp: new Date().toISOString()
       }
     };
@@ -150,6 +234,7 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
       };
       mockResult.incident.title = 'Windows Brute Force logon';
       mockResult.incident.source_ip = '192.168.1.142';
+      mockResult.incident.risk_score = 82;
       mockResult.incident.description = 'Failed logon attempts on Administrator user account.';
     } else if (type === 'linux') {
       mockResult.classification = 'Linux SSH Authentication Brute Force';
@@ -162,6 +247,7 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
       mockResult.incident.title = 'SSH Brute Force Attack';
       mockResult.incident.source_ip = '203.0.113.82';
       mockResult.incident.severity = 'CRITICAL';
+      mockResult.incident.risk_score = 96;
       mockResult.incident.description = 'Active dictionary scan targeting root and admin accounts over SSH.';
     } else if (type === 'firewall') {
       mockResult.classification = 'Port Scanning Reconnaissance';
@@ -174,18 +260,22 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
       mockResult.incident.title = 'Internal Port Scan Detected';
       mockResult.incident.source_ip = '203.0.113.5';
       mockResult.incident.severity = 'MEDIUM';
+      mockResult.incident.risk_score = 61;
       mockResult.incident.description = 'Host scanning activity profiling SMB, RDP, SSH, and HTTP listeners.';
     }
     return mockResult;
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h2 className="text-3xl font-extrabold text-white tracking-tight">AI Log Analyzer</h2>
-        <p className="text-slate-400 text-sm mt-1">
-          Upload raw Windows Security event logs, Linux auth.log, or firewall entries to extract intelligence.
-        </p>
+    <div className="space-y-8 animate-fade-in-up">
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-3xl font-extrabold text-white tracking-tight">AI Log Analyzer</h2>
+          <p className="text-slate-400 text-sm mt-1">
+            Upload raw Windows Security event logs, Linux auth.log, or firewall entries to extract intelligence.
+          </p>
+        </div>
+        <EducationalTooltip term="Prompt Injection" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -198,10 +288,10 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
                 <button
                   key={type}
                   onClick={() => handleSelectPreset(type)}
-                  className={`px-3 py-1 rounded-lg text-xs font-mono capitalize transition-all border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono capitalize transition-all border cursor-pointer ${
                     logType === type
-                      ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/40 shadow-sm'
-                      : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200'
+                      ? 'bg-indigo-650/30 text-indigo-300 border-indigo-500/40 shadow-sm'
+                      : 'bg-slate-900/60 text-slate-400 border-slate-850 hover:text-slate-200'
                   }`}
                 >
                   {type}
@@ -214,7 +304,7 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
             <textarea
               value={logText}
               onChange={(e) => setLogText(e.target.value)}
-              className="flex-1 w-full bg-slate-950/70 border border-slate-800 rounded-xl p-4 text-xs font-mono text-indigo-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-none"
+              className="flex-1 w-full bg-slate-950/70 border border-slate-850 rounded-xl p-4 text-xs font-mono text-indigo-300 placeholder-slate-650 focus:outline-none focus:border-indigo-500/50 resize-none shadow-inner"
               placeholder="Paste raw log lines here..."
             />
           </div>
@@ -222,92 +312,70 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
           <button
             onClick={handleAnalyze}
             disabled={analyzing || !logText.trim()}
-            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 hover:scale-[1.01]"
+            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 hover:scale-[1.01] cursor-pointer"
           >
             {analyzing ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin text-white" />
-                <span>Scanning log variables...</span>
+                <span>Orchestrating Security Agents...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5 text-indigo-200" />
+                <Sparkles className="w-5 h-5 text-indigo-200 animate-pulse" />
                 <span>Analyze with Gemini AI</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Right Side - Analysis Results */}
+        {/* Right Side - Analysis & Agent Orchestration */}
         <div className="glass-panel p-6 rounded-2xl flex flex-col justify-center min-h-[400px]">
           {!analysisResult && !analyzing && (
             <div className="text-center p-8 space-y-4">
-              <div className="w-16 h-16 bg-slate-900/80 border border-slate-850 flex items-center justify-center rounded-2xl mx-auto">
-                <Terminal className="w-8 h-8 text-slate-500" />
+              <div className="w-16 h-16 bg-slate-900/80 border border-slate-850 flex items-center justify-center rounded-2xl mx-auto shadow-inner">
+                <Terminal className="w-8 h-8 text-slate-600" />
               </div>
               <div>
-                <p className="text-slate-300 font-medium">Ready for Threat Analysis</p>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                  Click 'Analyze with Gemini AI' to trace variables, rate threats, and extract containment instructions.
+                <p className="text-slate-350 font-semibold text-sm">Ready for Threat Analysis</p>
+                <p className="text-xs text-slate-550 mt-1 max-w-xs mx-auto leading-relaxed">
+                  Click 'Analyze with Gemini AI' to trace variables, map attackers, and compile response dossiers.
                 </p>
               </div>
             </div>
           )}
 
           {analyzing && (
-            <div className="p-8 space-y-6">
-              <div className="text-center space-y-2">
-                <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
-                  <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-full" />
+            <div className="p-4 space-y-6">
+              <div className="text-center space-y-2 border-b border-slate-900 pb-4">
+                <div className="relative w-14 h-14 mx-auto flex items-center justify-center">
+                  <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-full animate-pulse" />
                   <div className="absolute inset-0 border-4 border-t-indigo-500 rounded-full animate-spin" />
-                  <Cpu className="w-6 h-6 text-indigo-400 animate-pulse" />
+                  <Cpu className="w-5 h-5 text-indigo-400 animate-pulse" />
                 </div>
                 <div>
-                  <p className="text-indigo-300 font-bold text-sm tracking-wider uppercase font-mono">
-                    Multi-Agent Core Orchestration
+                  <p className="text-indigo-300 font-bold text-xs tracking-wider uppercase font-mono">
+                    Multi-Agent Core Active
                   </p>
-                  <p className="text-[10px] text-slate-500 font-sans">
-                    Sequencing security nodes and synthesising response playbooks.
+                  <p className="text-[10px] text-slate-500 font-sans mt-0.5">
+                    Analyzing raw logs, compiling playbooks, and auditing containment strategies.
                   </p>
                 </div>
               </div>
 
-              {/* Progress Steps */}
-              <div className="bg-slate-950/60 rounded-xl border border-slate-900/60 p-5 space-y-3.5">
-                {[
-                  "Security Guardian validating upload...",
-                  "Investigator Agent analyzing logs...",
-                  "Threat Intelligence Agent mapping MITRE ATT&CK...",
-                  "Response Planner generating containment...",
-                  "PDF Generator creating incident report...",
-                  "Memory searching previous incidents..."
-                ].map((stepText, idx) => {
-                  const isDone = currentStep > idx;
+              {/* Holographic Agent Sequencing Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {AGENTS_METADATA.map((agent, idx) => {
                   const isActive = currentStep === idx;
+                  const isDone = currentStep > idx;
                   return (
-                    <div
+                    <AgentExecutionCard 
                       key={idx}
-                      className={`flex items-center space-x-3 transition-colors duration-200 ${
-                        isDone ? 'text-emerald-400' : isActive ? 'text-indigo-300 animate-pulse' : 'text-slate-650'
-                      }`}
-                    >
-                      <div className="flex-shrink-0">
-                        {isDone ? (
-                          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-0.5 rounded-full">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        ) : isActive ? (
-                          <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <div className="w-4 h-4 border border-slate-800 rounded-full bg-slate-900" />
-                        )}
-                      </div>
-                      <span className={`text-xs font-mono ${isActive ? 'font-semibold' : ''}`}>
-                        {stepText}
-                      </span>
-                    </div>
+                      name={agent.name}
+                      role={agent.role}
+                      isActive={isActive}
+                      isDone={isDone}
+                      finalTime={agent.finalTime}
+                    />
                   );
                 })}
               </div>
@@ -315,17 +383,17 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
           )}
 
           {analysisResult && !analyzing && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex justify-between items-start border-b border-slate-800 pb-4">
+            <div className="space-y-6 animate-fade-in-up">
+              <div className="flex justify-between items-start border-b border-slate-900 pb-4">
                 <div>
                   <span className="text-[10px] font-bold text-indigo-400 font-mono uppercase tracking-widest">
                     Threat Classified
                   </span>
-                  <h3 className="text-lg font-bold text-white mt-0.5">
+                  <h3 className="text-base font-bold text-white mt-0.5">
                     {analysisResult.classification}
                   </h3>
                 </div>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded font-mono ${
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded font-mono ${
                   analysisResult.severity === 'CRITICAL' ? 'bg-red-500/15 text-red-400 border border-red-500/30 glow-alert-red' :
                   analysisResult.severity === 'HIGH' ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30 glow-alert-yellow' :
                   analysisResult.severity === 'MEDIUM' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
@@ -338,23 +406,27 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
               {/* Summary Section */}
               <div className="space-y-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
-                  <ShieldAlert className="w-4 h-4 text-indigo-400" />
+                  <ShieldAlert className="w-4 h-4 text-indigo-400 animate-pulse" />
                   <span>Threat Intel Summary</span>
+                  <EducationalTooltip term="Threat Intelligence" />
                 </span>
-                <p className="text-xs text-slate-350 leading-relaxed bg-slate-950/45 p-3 rounded-xl border border-slate-900 font-sans">
+                <p className="text-xs text-slate-350 leading-relaxed bg-slate-950/45 p-3.5 rounded-xl border border-slate-900/60 font-sans shadow-inner">
                   {analysisResult.summary}
                 </p>
               </div>
 
               {/* Playbook Playbox */}
               <div className="space-y-3">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Recommended Response Playbook
-                </span>
-                <div className="bg-slate-950/70 rounded-xl border border-slate-850 p-4 space-y-3">
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Recommended Response Playbook
+                  </span>
+                  <EducationalTooltip term="Autonomous Mitigation" />
+                </div>
+                <div className="bg-slate-950/70 rounded-xl border border-slate-850 p-4 space-y-3 shadow-inner">
                   <div className="flex items-center justify-between text-xs border-b border-slate-850 pb-2">
                     <span className="text-slate-400">Target Mitigation Type:</span>
-                    <span className="font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                    <span className="font-mono font-bold text-indigo-455 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
                       {analysisResult.recommended_playbook?.action_type || 'BLOCK_IP'}
                     </span>
                   </div>
@@ -362,10 +434,10 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
                   <ul className="space-y-2.5">
                     {analysisResult.recommended_playbook?.steps?.map((step, idx) => (
                       <li key={idx} className="flex items-start space-x-2 text-xs">
-                        <span className="bg-indigo-900/50 text-indigo-300 w-5 h-5 rounded-full flex items-center justify-center font-mono font-semibold flex-shrink-0 text-[10px]">
+                        <span className="bg-indigo-900/40 text-indigo-300 w-5 h-5 rounded-full flex items-center justify-center font-mono font-semibold flex-shrink-0 text-[10px] border border-indigo-500/20">
                           {idx + 1}
                         </span>
-                        <span className="text-slate-300 pt-0.5">{step}</span>
+                        <span className="text-slate-350 pt-0.5">{step}</span>
                       </li>
                     ))}
                   </ul>
@@ -374,20 +446,20 @@ export default function LogAnalyzer({ onNewIncident, apiBase }) {
 
               {/* Action Executor Button */}
               {mitigated ? (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl flex items-center space-x-2.5 text-sm">
+                <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 p-4 rounded-xl flex items-center space-x-2.5 text-sm shadow-[0_0_15px_rgba(16,185,129,0.08)] animate-scale-in">
                   <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                  <span className="font-medium">Mitigation playbook successfully executed. Host is secured.</span>
+                  <span className="font-semibold text-xs">Autonomous mitigation playbook successfully executed. Perimeter secure.</span>
                 </div>
               ) : (
                 <button
                   onClick={handleExecutePlaybook}
                   disabled={executingMitigation}
-                  className="w-full bg-rose-600/20 border border-rose-500/40 text-rose-300 hover:bg-rose-650 hover:text-white font-medium py-2.5 rounded-xl transition-all duration-200 text-xs flex items-center justify-center space-x-2"
+                  className="w-full bg-rose-600/10 border border-rose-500/30 text-rose-350 hover:bg-rose-600 hover:text-white font-medium py-3 rounded-xl transition-all duration-200 text-xs flex items-center justify-center space-x-2 cursor-pointer hover:scale-[1.01]"
                 >
                   {executingMitigation ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-rose-400" />
-                      <span>Configuring network blocks...</span>
+                      <span>Configuring active firewall barriers...</span>
                     </>
                   ) : (
                     <>
