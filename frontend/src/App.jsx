@@ -103,7 +103,7 @@ const demoStats = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [apiBase, setApiBase] = useState('http://localhost:8081');
+  const [apiBase, setApiBase] = useState(import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000');
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   
   // Custom boot & demo management states
